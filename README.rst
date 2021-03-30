@@ -12,7 +12,7 @@
 |
 
 
-**Ray provides a simple, universal API for building distributed applications.**
+** THIS IS BAD Ray provides a simple, universal API for building distributed applications.**
 
 Ray is packaged with the following libraries for accelerating machine learning workloads:
 
