@@ -100,16 +100,6 @@ py_test_module_list(
 
 py_test_module_list(
   files = [
-    "test_runtime_env_complicated.py"
-  ],
-  size = "large",
-  extra_srcs = SRCS,
-  tags = ["exclusive", "post_wheel_build"],
-  deps = ["//:ray_lib"],
-)
-
-py_test_module_list(
-  files = [
     "test_args.py",
     "test_asyncio_cluster.py",
     "test_asyncio.py",
@@ -173,7 +163,8 @@ py_test_module_list(
 py_test_module_list(
   files = [
     "test_placement_group.py",
-    "test_runtime_env.py"
+    "test_runtime_env.py",
+    "test_runtime_env_complicated.py"
   ],
   size = "large",
   extra_srcs = SRCS,

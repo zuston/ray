@@ -74,7 +74,8 @@ class RuntimeEnvDict:
             if isinstance(conda, str):
                 self._dict["conda"] = conda
             elif isinstance(conda, dict):
-                self._dict["conda"] = conda
+                # TODO(architkulkarni): add dynamic conda env installs
+                raise NotImplementedError
             elif conda is not None:
                 raise TypeError("runtime_env['conda'] must be of type str or "
                                 "dict")
