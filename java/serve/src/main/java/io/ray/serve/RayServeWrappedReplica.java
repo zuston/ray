@@ -31,7 +31,7 @@ public class RayServeWrappedReplica {
       for (int i = 0; i < initArgs.length; i++) {
         parameterTypes[i] = initArgs[i].getClass();
       }
-    }
+    } // TODO Extract to util.
     callable = backendClass.getConstructor(parameterTypes).newInstance(initArgs);
 
     // TODO set_internal_replica_context. support in Java SDK's PR.

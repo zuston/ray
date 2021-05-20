@@ -1,7 +1,6 @@
 package io.ray.serve;
 
 import java.io.Serializable;
-import java.util.Map;
 
 /**
  * BackendConfig.
@@ -14,10 +13,14 @@ public class BackendConfig implements Serializable {
 
   private int maxConcurrentQueries;
 
-  private Map<String, String> userConfig;
+  private Object userConfig;
 
   private float experimentalGracefulShutdownWaitLoop;
 
   private float experimentalGracefulShutdownTimeout;
+
+  public Object getUserConfig() {
+    return userConfig;
+  }
 
 }
