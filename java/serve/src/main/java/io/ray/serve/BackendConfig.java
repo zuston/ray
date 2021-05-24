@@ -15,12 +15,16 @@ public class BackendConfig implements Serializable {
 
   private Object userConfig;
 
-  private float experimentalGracefulShutdownWaitLoop;
+  private long experimentalGracefulShutdownWaitLoopS = 2;
 
-  private float experimentalGracefulShutdownTimeout;
+  private long experimentalGracefulShutdownTimeoutS = 20;
 
   public Object getUserConfig() {
     return userConfig;
+  }
+
+  public long getExperimentalGracefulShutdownWaitLoopS() {
+    return experimentalGracefulShutdownWaitLoopS;
   }
 
 }
