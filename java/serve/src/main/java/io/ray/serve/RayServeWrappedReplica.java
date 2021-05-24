@@ -3,6 +3,7 @@ package io.ray.serve;
 import com.google.common.base.Preconditions;
 import io.ray.api.BaseActorHandle;
 import io.ray.api.Ray;
+import io.ray.serve.api.Serve;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,7 @@ public class RayServeWrappedReplica {
       InstantiationException, IllegalAccessException, IllegalArgumentException,
       InvocationTargetException {
 
+    // Instantiate the object defined by backendDef. Not support Java function now.
     Class backendClass = Class.forName(backendDef);
     
     Object callable = null;
@@ -34,13 +36,14 @@ public class RayServeWrappedReplica {
     } // TODO Extract to util.
     callable = backendClass.getConstructor(parameterTypes).newInstance(initArgs);
 
-    // TODO set_internal_replica_context. support in Java SDK's PR.
-
     Preconditions.checkArgument(StringUtils.isNotBlank(controllerName),
         "Must provide a valid controllerName");
-
     Optional<BaseActorHandle> optional = Ray.getActor(controllerName);
     Preconditions.checkState(optional.isPresent(), "Controller does not exist");
+
+    // Set the controller name so that Serve.connect() in the user's backend code will connect to
+    // the instance that this backend is running in.
+    Serve.setInternalReplicaContext(backendTag, replicaTag, controllerName, callable);
 
     backend = new RayServeReplica(callable, backendConfig, optional.get());
 
