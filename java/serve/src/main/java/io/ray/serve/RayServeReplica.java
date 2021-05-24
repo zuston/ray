@@ -11,6 +11,7 @@ import io.ray.serve.api.Serve;
 import io.ray.serve.poll.KeyType;
 import io.ray.serve.poll.LongPollClient;
 import io.ray.serve.poll.LongPollNamespace;
+import io.ray.serve.util.LogUtil;
 import io.ray.serve.util.ReflectUtil;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -90,7 +91,7 @@ public class RayServeReplica {
 
     this.restartCounter.inc(1.0);
 
-    // TODO logger format
+    LogUtil.setLayout(backendTag, replicaTag);
 
   }
 
@@ -139,10 +140,9 @@ public class RayServeReplica {
       return ReflectUtil.getMethod(callable.getClass(), methodName,
           query.getArgs() == null ? null : query.getArgs().toArray());
     } catch (NoSuchMethodException e) {
-      throw new RayServeException(
-          "Backend doesn't have method " + methodName
-              + "which is specified in the request. The available methods are "
-              + callable.getClass().getMethods()); // TODO string format.
+      throw new RayServeException(LogUtil.format(
+          "Backend doesn't have method {} which is specified in the request. The available methods are {}",
+          methodName, ReflectUtil.getMethodStrings(callable.getClass())));
     }
 
   }
@@ -169,8 +169,9 @@ public class RayServeReplica {
 
       reconfigureMethod.invoke(callable, userConfig);
     } catch (NoSuchMethodException e) {
-      throw new RayServeException("user_config specified but backend " + backendTag + " missing "
-          + Constants.BACKEND_RECONFIGURE_METHOD + " method"); // TODO string format.
+      throw new RayServeException(
+          LogUtil.format("user_config specified but backend {}  missing {} method", backendTag,
+              Constants.BACKEND_RECONFIGURE_METHOD));
     }
   }
 

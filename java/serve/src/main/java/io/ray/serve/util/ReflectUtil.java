@@ -2,6 +2,8 @@ package io.ray.serve.util;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -91,6 +93,22 @@ public class ReflectUtil {
     }
     buf.append(")");
     return buf.toString();
+  }
+
+  @SuppressWarnings("rawtypes")
+  public static List<String> getMethodStrings(Class targetClass) {
+    if (targetClass == null) {
+      return null;
+    }
+    Method[] methods = targetClass.getMethods();
+    if (methods == null || methods.length == 0) {
+      return null;
+    }
+    List<String> methodStrings = new ArrayList<>();
+    for (Method method : methods) {
+      methodStrings.add(method.toString());
+    }
+    return methodStrings;
   }
 
 }
