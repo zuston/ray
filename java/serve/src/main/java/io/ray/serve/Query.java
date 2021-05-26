@@ -20,8 +20,16 @@ public class Query {
     return args;
   }
 
+  public void setArgs(List<Object> args) {
+    this.args = args;
+  }
+
   public RequestMetadata getMetadata() {
     return metadata;
+  }
+
+  public void setMetadata(RequestMetadata metadata) {
+    this.metadata = metadata;
   }
 
 }

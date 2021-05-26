@@ -79,7 +79,7 @@ public class ReflectUtil {
     return true;
   }
 
-  public static String argumentTypesToString(Class<?>[] argTypes) {
+  private static String argumentTypesToString(Class<?>[] argTypes) {
     StringBuilder buf = new StringBuilder();
     buf.append("(");
     if (argTypes != null) {
