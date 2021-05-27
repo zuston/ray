@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * RayServeReplica.
+ * Handles requests with the provided callable.
  */
 public class RayServeReplica {
 
@@ -95,7 +95,7 @@ public class RayServeReplica {
 
   }
 
-  public Object handle_request(Query request) {
+  public Object handleRequest(Query request) {
     long startTime = System.currentTimeMillis();
     LOGGER.debug("Replica {} received request {}", this.replicaTag,
         request.getMetadata().getRequestId());
@@ -138,7 +138,7 @@ public class RayServeReplica {
 
     try {
       return ReflectUtil.getMethod(callable.getClass(), methodName,
-          query.getArgs() == null ? null : query.getArgs().toArray());
+          query.getArgs() == null ? null : query.getArgs());
     } catch (NoSuchMethodException e) {
       throw new RayServeException(LogUtil.format(
           "Backend doesn't have method {} which is specified in the request. The available methods are {}",
@@ -147,9 +147,13 @@ public class RayServeReplica {
 
   }
 
-  public void drain_pending_queries() throws InterruptedException {
+  public void drainPendingQueries() {
     while (true) {
-      Thread.sleep(this.config.getExperimentalGracefulShutdownWaitLoopS() * 1000);
+      try {
+        Thread.sleep(config.getExperimentalGracefulShutdownWaitLoopS() * 1000);
+      } catch (InterruptedException e) {
+        // logger.error("", e); //
+      }
       if (this.numOngoingRequests.get() == 0) {
         break;
       } else {
@@ -161,18 +165,26 @@ public class RayServeReplica {
     Ray.exitActor();
   }
 
+  /**
+   * Reconfigure user's configuration in the callable object through its reconfigure method.
+   * 
+   * @param userConfig new user's configuration
+   * @throws IllegalAccessException from {@link Method#invoke(Object, Object...)}}
+   * @throws IllegalArgumentException from {@link Method#invoke(Object, Object...)}}
+   * @throws InvocationTargetException from {@link Method#invoke(Object, Object...)}}
+   */
   private void reconfigure(Object userConfig)
       throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    Method reconfigureMethod = null;
     try {
-      Method reconfigureMethod = ReflectUtil.getMethod(callable.getClass(),
+      reconfigureMethod = ReflectUtil.getMethod(callable.getClass(),
           Constants.BACKEND_RECONFIGURE_METHOD, userConfig);
-
-      reconfigureMethod.invoke(callable, userConfig);
     } catch (NoSuchMethodException e) {
       throw new RayServeException(
           LogUtil.format("user_config specified but backend {}  missing {} method", backendTag,
               Constants.BACKEND_RECONFIGURE_METHOD));
     }
+    reconfigureMethod.invoke(callable, userConfig);
   }
 
   private void _update_backend_configs(Object newConfig)

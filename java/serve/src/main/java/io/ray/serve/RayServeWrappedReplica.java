@@ -6,12 +6,11 @@ import io.ray.api.Ray;
 import io.ray.serve.api.Serve;
 import io.ray.serve.util.ReflectUtil;
 import java.lang.reflect.InvocationTargetException;
-import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * RayServeWrappedReplica.
+ * Replica class wrapping the provided class. Note that Java function is not supported now.
  */
 public class RayServeWrappedReplica {
   
@@ -20,15 +19,15 @@ public class RayServeWrappedReplica {
   @SuppressWarnings("rawtypes")
   public RayServeWrappedReplica(String backendTag, String replicaTag, String backendDef,
       Object[] initArgs, BackendConfig backendConfig, String controllerName)
-      throws ClassNotFoundException, NoSuchMethodException, SecurityException,
-      InstantiationException, IllegalAccessException, IllegalArgumentException,
-      InvocationTargetException {
+      throws ClassNotFoundException, NoSuchMethodException, InstantiationException,
+      IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
-    // Instantiate the object defined by backendDef. Not support Java function now.
+    // Instantiate the object defined by backendDef.
     Class backendClass = Class.forName(backendDef);
     Object callable =
         ReflectUtil.getConstructor(backendClass, initArgs).newInstance(initArgs);
 
+    // Get the controller by controllerName.
     Preconditions.checkArgument(StringUtils.isNotBlank(controllerName),
         "Must provide a valid controllerName");
     Optional<BaseActorHandle> optional = Ray.getActor(controllerName);
@@ -38,20 +37,36 @@ public class RayServeWrappedReplica {
     // the instance that this backend is running in.
     Serve.setInternalReplicaContext(backendTag, replicaTag, controllerName, callable);
 
+    // Construct worker replica.
     backend = new RayServeReplica(callable, backendConfig, optional.get());
 
   }
 
-  public void handle_request(RequestMetadata requestMetadata, List<Object> requestArgs) {
-    backend.handle_request(new Query(requestArgs, requestMetadata));
+  /**
+   * The entry method to process the request.
+   * 
+   * @param requestMetadata request metadata
+   * @param requestArgs the input parameters of the specified method of the object defined by
+   *        backendDef.
+   */
+  public void handle_request(RequestMetadata requestMetadata, Object[] requestArgs) {
+    backend.handleRequest(new Query(requestArgs, requestMetadata));
   }
 
+  /**
+   * Check whether this replica is ready or not.
+   */
   public void ready() {
     return;
   }
 
+  /**
+   * Wait until there is no request in processing. It is used for stopping replica gracefully.
+   * 
+   * @throws InterruptedException if current thread is interrupted when it is sleeping.
+   */
   public void drain_pending_queries() throws InterruptedException {
-    backend.drain_pending_queries();
+    backend.drainPendingQueries();
   }
 
 }

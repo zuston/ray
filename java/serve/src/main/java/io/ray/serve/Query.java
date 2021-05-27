@@ -1,26 +1,24 @@
 package io.ray.serve;
 
-import java.util.List;
-
 /**
  * Query.
  */
 public class Query {
 
-  private List<Object> args;
+  private Object[] args;
 
   private RequestMetadata metadata;
 
-  public Query(List<Object> args, RequestMetadata requestMetadata) {
+  public Query(Object[] args, RequestMetadata requestMetadata) {
     this.args = args;
     this.metadata = requestMetadata;
   }
 
-  public List<Object> getArgs() {
+  public Object[] getArgs() {
     return args;
   }
 
-  public void setArgs(List<Object> args) {
+  public void setArgs(Object[] args) {
     this.args = args;
   }
 
