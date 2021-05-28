@@ -8,6 +8,7 @@ import io.ray.runtime.metric.Gauge;
 import io.ray.runtime.metric.Histogram;
 import io.ray.runtime.metric.TagKey;
 import io.ray.serve.api.Serve;
+import io.ray.serve.poll.KeyListener;
 import io.ray.serve.poll.KeyType;
 import io.ray.serve.poll.LongPollClient;
 import io.ray.serve.poll.LongPollNamespace;
@@ -18,7 +19,6 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,34 +60,28 @@ public class RayServeReplica {
     this.config = backendConfig;
     this.reconfigure(backendConfig.getUserConfig());
 
-    Map<KeyType, Consumer<Object>> keyListeners = new HashMap<>();
+    Map<KeyType, KeyListener> keyListeners = new HashMap<>();
     keyListeners.put(new KeyType(LongPollNamespace.BACKEND_CONFIGS, backendTag),
-        newConfig -> {
-          try {
-            _update_backend_configs(newConfig);
-          } catch (IllegalAccessException | IllegalArgumentException
-              | InvocationTargetException e) {
-            // TODO handle error.
-          }
-        });
+        newConfig -> updateBackendConfigs(newConfig));
     this.longPollClient = new LongPollClient(actorHandle, keyListeners);
 
-    Map<TagKey, String> tags = new HashMap<>();
-    tags.put(new TagKey("backend"), backendTag);
+    Map<TagKey, String> backendTags = new HashMap<>();
+    backendTags.put(new TagKey("backend"), backendTag);
     this.requestCounter = new Count("serve_backend_request_counter",
-        "The number of queries that have been processed in this replica.", "", tags);
+        "The number of queries that have been processed in this replica.", "", backendTags);
     this.errorCounter = new Count("serve_backend_error_counter",
-        "The number of exceptions that have occurred in the backend.", "", tags);
+        "The number of exceptions that have occurred in the backend.", "", backendTags);
 
-    tags = new HashMap<>();
-    tags.put(new TagKey("backend"), backendTag);
-    tags.put(new TagKey("replica"), replicaTag);
+    Map<TagKey, String> replicaTags = new HashMap<>();
+    replicaTags.put(new TagKey("backend"), backendTag);
+    replicaTags.put(new TagKey("replica"), replicaTag);
     this.restartCounter = new Count("serve_backend_replica_starts",
-        "The number of times this replica has been restarted due to failure.", "", tags);
+        "The number of times this replica has been restarted due to failure.", "", replicaTags);
     this.processingLatencyTracker = new Histogram("serve_backend_processing_latency_ms",
-        "The latency for queries to be processed.", "", Constants.DEFAULT_LATENCY_BUCKET_MS, tags);
+        "The latency for queries to be processed.", "", Constants.DEFAULT_LATENCY_BUCKET_MS,
+        replicaTags);
     this.numProcessingItems = new Gauge("serve_replica_processing_queries",
-        "The current number of queries being processed.", "", tags);
+        "The current number of queries being processed.", "", replicaTags);
 
     this.restartCounter.inc(1.0);
 
@@ -147,6 +141,10 @@ public class RayServeReplica {
 
   }
 
+  /**
+   * Perform graceful shutdown. Trigger a graceful shutdown protocol that will wait for all the
+   * queued tasks to be completed and return to the controller.
+   */
   public void drainPendingQueries() {
     while (true) {
       try {
@@ -187,9 +185,18 @@ public class RayServeReplica {
     reconfigureMethod.invoke(callable, userConfig);
   }
 
-  private void _update_backend_configs(Object newConfig)
+  /**
+   * Update backend configs.
+   * 
+   * @param newConfig the new configuration of backend
+   * @throws IllegalAccessException from {@link RayServeReplica#reconfigure(Object)}
+   * @throws IllegalArgumentException from {@link RayServeReplica#reconfigure(Object)}
+   * @throws InvocationTargetException from {@link RayServeReplica#reconfigure(Object)}
+   */
+  private void updateBackendConfigs(Object newConfig)
       throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-    this.reconfigure(((BackendConfig) newConfig).getUserConfig());
+    config = (BackendConfig) newConfig;
+    reconfigure(((BackendConfig) newConfig).getUserConfig());
   }
 
 }

@@ -9,17 +9,21 @@ import io.ray.runtime.exception.RayTaskException;
 import io.ray.serve.Constants;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The asynchronous long polling client.
+ */
 public class LongPollClient {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LongPollClient.class);
 
+  /** Handle to actor embedding LongPollHost. */
   private BaseActorHandle hostActor;
 
-  private Map<KeyType, Consumer<Object>> keyListeners;
+  /** A set mapping keys to callbacks to be called on state update for the corresponding keys. */
+  private Map<KeyType, KeyListener> keyListeners;
 
   private Map<KeyType, Integer> snapshotIds;
 
@@ -27,15 +31,23 @@ public class LongPollClient {
 
   private ObjectRef<Object> currentRef;
 
+  /** An async thread to post the callback into. */
   private Thread pollThread;
 
-  public LongPollClient(BaseActorHandle hostActor, Map<KeyType, Consumer<Object>> keyListeners) {
+  private boolean running;
+
+  public LongPollClient(BaseActorHandle hostActor, Map<KeyType, KeyListener> keyListeners) {
     this.hostActor = hostActor;
     this.keyListeners = keyListeners;
     reset();
+    this.running = true;
     this.pollThread = new Thread(() -> {
-      while (true) {
-        pollNext();
+      while (running) {
+        try {
+          pollNext();
+        } catch (Throwable e) {
+          LOGGER.error("Long poll client failed to poll updated object of key {}", snapshotIds, e);
+        }
       }
     }, "backend-poll-thread");
     this.pollThread.start();
@@ -47,7 +59,12 @@ public class LongPollClient {
     currentRef = null;
   }
 
-  private void pollNext() {
+  /**
+   * Poll the update.
+   * 
+   * @throws Throwable
+   */
+  private void pollNext() throws Throwable {
     currentRef = ((PyActorHandle) hostActor)
         .task(PyActorMethod.of(Constants.CONTROLLER_LISTEN_FOR_CHANGE_METHOD), snapshotIds)
         .remote();
@@ -57,10 +74,10 @@ public class LongPollClient {
   }
 
   @SuppressWarnings("unchecked")
-  private void processUpdate(Object updates) {
+  private void processUpdate(Object updates) throws Throwable {
     if (updates instanceof RayActorException) {
       LOGGER.debug("LongPollClient failed to connect to host. Shutting down.");
-      // TODO exist async thread.
+      running = false;
       return;
     }
 
@@ -76,8 +93,8 @@ public class LongPollClient {
     for (Map.Entry<KeyType, UpdatedObject> entry : updateObjects.entrySet()) {
       objectSnapshots.put(entry.getKey(), entry.getValue().getObjectSnapshot());
       snapshotIds.put(entry.getKey(), entry.getValue().getSnapshotId());
-      Consumer<Object> consumer = keyListeners.get(entry.getKey());
-      consumer.accept(entry.getValue().getObjectSnapshot());
+      KeyListener keyListener = keyListeners.get(entry.getKey());
+      keyListener.notifyChanged(entry.getValue().getObjectSnapshot());
     }
 
   }

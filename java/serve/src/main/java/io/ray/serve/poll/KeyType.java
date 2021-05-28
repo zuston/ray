@@ -2,6 +2,9 @@ package io.ray.serve.poll;
 
 import java.io.Serializable;
 
+/**
+ * Key type of long poll.
+ */
 public class KeyType implements Serializable {
 
   private static final long serialVersionUID = -8838552786234630401L;

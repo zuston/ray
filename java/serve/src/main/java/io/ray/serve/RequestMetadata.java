@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
- * RequestMetadata.
+ * The meta data of request.
  */
 public class RequestMetadata implements Serializable {
 

@@ -1,11 +1,12 @@
 package io.ray.serve;
 
+import com.google.common.base.Preconditions;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * ReplicaConfig.
+ * Configuration options for a replica.
  */
 public class ReplicaConfig implements Serializable {
 
@@ -17,7 +18,7 @@ public class ReplicaConfig implements Serializable {
 
   private Map<String, Object> rayActorOptions;
 
-  private Map<String, Object> resource;
+  private Map<String, Double> resource;
 
   public ReplicaConfig(String backendDef, Object[] initArgs, Map<String, Object> rayActorOptions) {
     this.backendDef = backendDef;
@@ -27,6 +28,7 @@ public class ReplicaConfig implements Serializable {
     this.validate();
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private void validate() {
     if (rayActorOptions.containsKey("placement_group")) {
       throw new IllegalArgumentException(
@@ -41,6 +43,45 @@ public class ReplicaConfig implements Serializable {
     if (rayActorOptions.containsKey("max_restarts")) {
       throw new IllegalArgumentException("Specifying max_restarts in init_args is not allowed.");
     }
+    if (rayActorOptions.containsKey("max_restarts")) {
+      throw new IllegalArgumentException("Specifying max_restarts in init_args is not allowed.");
+    }
+
+    // TODO Confirm num_cpus, num_gpus, memory is double in protobuf.
+    // Ray defaults to zero CPUs for placement, we default to one here.
+    Object numCpus = rayActorOptions.getOrDefault("num_cpus", Double.valueOf(1.0));
+    Preconditions.checkArgument(numCpus instanceof Double,
+        "num_cpus in ray_actor_options must be a double.");
+    Preconditions.checkArgument(((Double) numCpus) >= 0,
+        "num_cpus in ray_actor_options must be >= 0.");
+    resource.put("CPU", (Double) numCpus);
+
+    Object numGpus = rayActorOptions.getOrDefault("num_gpus", Double.valueOf(0));
+    Preconditions.checkArgument(numGpus instanceof Double,
+        "num_gpus in ray_actor_options must be a double.");
+    Preconditions.checkArgument(((Double) numGpus) >= 0,
+        "num_gpus in ray_actor_options must be >= 0.");
+    resource.put("GPU", (Double) numGpus);
+
+    Object memory = rayActorOptions.getOrDefault("memory", Double.valueOf(0));
+    Preconditions.checkArgument(memory instanceof Double,
+        "memory in ray_actor_options must be a double.");
+    Preconditions.checkArgument(((Double) memory) >= 0,
+        "memory in ray_actor_options must be >= 0.");
+    resource.put("memory", (Double) memory);
+
+    Object objectStoreMemory =
+        rayActorOptions.getOrDefault("object_store_memory", Double.valueOf(0));
+    Preconditions.checkArgument(objectStoreMemory instanceof Double,
+        "object_store_memory in ray_actor_options must be a double.");
+    Preconditions.checkArgument(((Double) objectStoreMemory) >= 0,
+        "object_store_memory in ray_actor_options must be >= 0.");
+    resource.put("object_store_memory", (Double) objectStoreMemory);
+
+    Object customResources = rayActorOptions.getOrDefault("resources", new HashMap<>());
+    Preconditions.checkArgument(customResources instanceof Map,
+        "resources in ray_actor_options must be a map.");
+    resource.putAll((Map) customResources);
 
   }
 
@@ -68,11 +109,11 @@ public class ReplicaConfig implements Serializable {
     this.rayActorOptions = rayActorOptions;
   }
 
-  public Map<String, Object> getResource() {
+  public Map<String, Double> getResource() {
     return resource;
   }
 
-  public void setResource(Map<String, Object> resource) {
+  public void setResource(Map<String, Double> resource) {
     this.resource = resource;
   }
 

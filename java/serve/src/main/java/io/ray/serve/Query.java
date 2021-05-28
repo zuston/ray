@@ -1,7 +1,7 @@
 package io.ray.serve;
 
 /**
- * Query.
+ * Wrap request arguments and meta data.
  */
 public class Query {
 

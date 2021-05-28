@@ -7,6 +7,9 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.slf4j.helpers.MessageFormatter;
 
+/**
+ * Ray Serve common log tool.
+ */
 public class LogUtil {
 
   public static final String RAY_SERVE = "io.ray";
