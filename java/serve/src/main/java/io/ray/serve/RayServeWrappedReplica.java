@@ -48,8 +48,10 @@ public class RayServeWrappedReplica {
    * @param requestMetadata request metadata
    * @param requestArgs the input parameters of the specified method of the object defined by
    *        backendDef.
+   * @throws Throwable if exception happens
    */
-  public void handle_request(RequestMetadata requestMetadata, Object[] requestArgs) {
+  public void handle_request(RequestMetadata requestMetadata, Object[] requestArgs)
+      throws Throwable {
     backend.handleRequest(new Query(requestArgs, requestMetadata));
   }
 

@@ -90,7 +90,8 @@ public class ReflectUtil {
       String message, Class targetClass, Object... parameters) throws NoSuchMethodException {
     Class[] parameterTypes = getParameterTypes(parameters);
     T result = null;
-    for (T candidate : candidates) {
+    for (int i = 0; i < candidates.length; i++) {
+      T candidate = candidates[i];
       if (filter.apply(candidate) && assignable(parameterTypes, candidate.getParameterTypes())
           && (result == null
               || assignable(candidate.getParameterTypes(), result.getParameterTypes()))) {
@@ -165,8 +166,8 @@ public class ReflectUtil {
       return null;
     }
     List<String> methodStrings = new ArrayList<>();
-    for (Method method : methods) {
-      methodStrings.add(method.toString());
+    for (int i = 0; i < methods.length; i++) {
+      methodStrings.add(methods[i].toString());
     }
     return methodStrings;
   }

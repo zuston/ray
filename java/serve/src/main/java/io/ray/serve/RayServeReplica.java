@@ -2,7 +2,6 @@ package io.ray.serve;
 
 import io.ray.api.BaseActorHandle;
 import io.ray.api.Ray;
-import io.ray.runtime.exception.RayTaskException;
 import io.ray.runtime.metric.Count;
 import io.ray.runtime.metric.Gauge;
 import io.ray.runtime.metric.Histogram;
@@ -89,7 +88,7 @@ public class RayServeReplica {
 
   }
 
-  public Object handleRequest(Query request) {
+  public Object handleRequest(Query request) throws Throwable {
     long startTime = System.currentTimeMillis();
     LOGGER.debug("Replica {} received request {}", this.replicaTag,
         request.getMetadata().getRequestId());
@@ -97,6 +96,7 @@ public class RayServeReplica {
     this.numProcessingItems.update(numOngoingRequests.incrementAndGet());
     Object result = invokeSingle(request);
     this.numOngoingRequests.decrementAndGet();
+
     long requestTimeMs = System.currentTimeMillis() - startTime;
     LOGGER.debug("Replica {} finished request {} in {}ms", this.replicaTag,
         request.getMetadata().getRequestId(), requestTimeMs);
@@ -104,7 +104,7 @@ public class RayServeReplica {
     return result;
   }
 
-  private Object invokeSingle(Query requestItem) {
+  private Object invokeSingle(Query requestItem) throws Throwable {
     LOGGER.debug("Replica {} started executing request {}", this.replicaTag,
         requestItem.getMetadata().getRequestId());
 
@@ -114,11 +114,10 @@ public class RayServeReplica {
     try {
       methodToCall = getRunnerMethod(requestItem);
       result = methodToCall.invoke(callable, requestItem.getArgs());
-
       this.requestCounter.inc(1.0);
     } catch (Throwable e) {
       this.errorCounter.inc(1.0);
-      throw new RayTaskException(methodToCall == null ? "unknown" : methodToCall.getName(), e);
+      throw e;
     }
 
     long latencyMs = System.currentTimeMillis() - start;
@@ -150,7 +149,8 @@ public class RayServeReplica {
       try {
         Thread.sleep(config.getExperimentalGracefulShutdownWaitLoopS() * 1000);
       } catch (InterruptedException e) {
-        // logger.error("", e); //
+        LOGGER.error("Replica {} was interrupted in sheep when draining pending queries",
+            this.replicaTag);
       }
       if (this.numOngoingRequests.get() == 0) {
         break;

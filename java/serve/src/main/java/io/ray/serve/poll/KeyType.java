@@ -1,6 +1,8 @@
 package io.ray.serve.poll;
 
 import java.io.Serializable;
+import java.util.Objects;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
 /**
  * Key type of long poll.
@@ -38,12 +40,15 @@ public class KeyType implements Serializable {
 
   @Override
   public int hashCode() {
-    int h = hash;
-    if (h == 0) {
-      h = 31 * h + longPollNamespace.hashCode();
-      h = 31 * h + key.hashCode();
+    if (hash == 0) {
+      hash = Objects.hash(longPollNamespace, key);
     }
-    return h;
+    return hash;
+  }
+
+  @Override
+  public String toString() {
+    return ReflectionToStringBuilder.toString(this);
   }
 
 }
