@@ -301,7 +301,6 @@ class FunctionActorManager:
         """
         start_time = time.time()
         # Only send the warning once.
-        warning_sent = False
         while True:
             with self.lock:
                 if (self._worker.actor_id.is_nil()
@@ -316,13 +315,12 @@ class FunctionActorManager:
                                    "function that it does not have "
                                    "registered. You may have to restart "
                                    "Ray.")
-                if not warning_sent:
+                if False:
                     ray._private.utils.push_error_to_driver(
                         self._worker,
                         ray_constants.WAIT_FOR_FUNCTION_PUSH_ERROR,
                         warning_message,
                         job_id=job_id)
-                warning_sent = True
             time.sleep(0.001)
 
     def _publish_actor_class_to_key(self, key, actor_class_info):

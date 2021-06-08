@@ -120,7 +120,7 @@ class ImportThread:
                 self.imported_collision_identifiers[collision_identifier] += 1
                 if (self.imported_collision_identifiers[collision_identifier]
                         == ray_constants.DUPLICATE_REMOTE_FUNCTION_THRESHOLD):
-                    logger.warning(
+                    logger.debug(
                         "The %s '%s' has been exported %s times. It's "
                         "possible that this warning is accidental, but this "
                         "may indicate that the same remote function is being "
