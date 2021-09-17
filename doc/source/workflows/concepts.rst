@@ -46,11 +46,11 @@ Steps are functions annotated with the ``@workflow.step`` decorator. Steps are r
     def add(a: int, b: int) -> int:
         return a + b
 
-    output: Workflow[int] = add.step(100, one.step())
+    output = add.step(100, one.step())
 
 Workflows
 ~~~~~~~~~
-A workflow is an execution graph of steps created with ``Workflow.run()`` or ``Workflow.run_async()``. Once started, a workflow's execution is durably logged to storage. On system failure, workflows can be resumed on any Ray cluster with access to the storage.
+A workflow is an execution graph of steps created with ``workflow.run()`` or ``workflow.run_async()``. Once started, a workflow's execution is durably logged to storage. On system failure, workflows can be resumed on any Ray cluster with access to the storage.
 
 .. code-block:: python
     :caption: Creating a new workflow run:
